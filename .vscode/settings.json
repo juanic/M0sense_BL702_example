@@ -1,0 +1,12 @@
+{
+    "cmake.sourceDirectory": "D:/Documentos/Embedded_Platforms/M0Sense_BL702/Repo/M0sense_BL702_example/bl_mcu_sdk",
+    "files.associations": {
+        "mcu_lcd.h": "c",
+        "st7796.h": "c",
+        "hal_gpio.h": "c",
+        "io_def.h": "c",
+        "drv_device.h": "c",
+        "st7789v.h": "c",
+        "st7735s.h": "c"
+    }
+}
