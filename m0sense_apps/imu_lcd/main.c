@@ -25,6 +25,31 @@
 #define QMI8658A_REG_GZ_L (0x3F)
 #define QMI8658A_REG_GZ_H (0x40)
 
+#define GRAPH_WIDTH 160  // Ancho de la gráfica (en píxeles)
+#define GRAPH_HEIGHT 80  // Altura de la gráfica (en píxeles)
+#define GRAPH_OFFSET_X 0 // Desplazamiento en X
+#define GRAPH_OFFSET_Y 0 // Desplazamiento en Y
+#define SCALE_FACTOR 64  // Factor de escalado para agrandar las gráficas
+
+int16_t acc_x_buffer[GRAPH_WIDTH];  // Buffer circular para acc_x
+int16_t acc_y_buffer[GRAPH_WIDTH];  // Buffer circular para acc_y
+int16_t acc_z_buffer[GRAPH_WIDTH];  // Buffer circular para acc_z
+int graph_index = 0;  // Índice actual en el buffer
+
+void draw_graph(int16_t *buffer, uint16_t color) {
+    for (int i = 1; i < GRAPH_WIDTH; i++) {
+        int x1 = GRAPH_OFFSET_X + i - 1;
+        int y1 = GRAPH_OFFSET_Y + (GRAPH_HEIGHT / 2) - (buffer[(graph_index + i - 1) % GRAPH_WIDTH] / SCALE_FACTOR);
+        int x2 = GRAPH_OFFSET_X + i;
+        int y2 = GRAPH_OFFSET_Y + (GRAPH_HEIGHT / 2) - (buffer[(graph_index + i) % GRAPH_WIDTH] / SCALE_FACTOR);
+        lcd_draw_line(x1, y1, x2, y2, color);  // Dibuja una línea entre dos puntos
+    }
+}
+
+void lcd_fill_rect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color) {
+    lcd_draw_area(x, y, x + width - 1, y + height - 1, color);
+}
+
 int main(void)
 {
     bflb_platform_init(0);
@@ -75,7 +100,7 @@ int main(void)
     msg.subaddr = QMI8658A_REG_AX_L;
 
     int16_t acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z;
-    uint16_t color_back =  0x00ff;
+    uint16_t color_back =  0x0000;
     uint16_t color_font =  0xffff;
     char acc_x_str[16];  // Buffer para almacenar la representación en string de acc_x
     char acc_y_str[16];  // Buffer para almacenar la representación en string de acc_y      
@@ -103,7 +128,7 @@ int main(void)
             printf("acc: %6d, %6d, %6d AND gyro: %6d, %6d, %6d\r\n", acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z);
             
             //printf("lcd flush: (%#04x)\r\n", color);
-            lcd_clear(color_back);
+            /*lcd_clear(color_back);
             sprintf(acc_x_str, "%d", acc_x);  // Convierte acc_x a string
             sprintf(acc_y_str, "%d", acc_y);  // Convierte acc_y a string
             sprintf(acc_z_str, "%d", acc_z);  // Convierte acc_z a string
@@ -115,9 +140,23 @@ int main(void)
             lcd_draw_str_ascii16(0, 0, color_font, color_back, str_acc, 64); // Dibuja la cadena en la pantalla LCD
             lcd_draw_str_ascii16(0, 16, color_font, color_back, str_gyro, 64); // Dibuja la cadena en la pantalla LCD
             //lcd_draw_str_ascii16(34, 0, color_font, color_back, "M 0 S E N S E", 13);
-            //lcd_draw_str_ascii16(0, 16, color_font, color_back, "TinyML & MaixHUB", 16);
+            //lcd_draw_str_ascii16(0, 16, color_font, color_back, "TinyML & MaixHUB", 16);*/
             //mtimer_delay_ms(2000);
+
+            // Almacena los valores en el buffer circular
+            acc_x_buffer[graph_index] = acc_x;
+            acc_y_buffer[graph_index] = acc_y;
+            acc_z_buffer[graph_index] = acc_z;
+            graph_index = (graph_index + 1) % GRAPH_WIDTH;
+
+            // Limpia la región de la gráfica
+            lcd_fill_rect(GRAPH_OFFSET_X, GRAPH_OFFSET_Y, GRAPH_WIDTH, GRAPH_HEIGHT, color_back);
+
+            // Dibuja las gráficas
+            draw_graph(acc_x_buffer, 0xF800);  // Rojo para acc_x
+            draw_graph(acc_y_buffer, 0x07E0);  // Verde para acc_y
+            draw_graph(acc_z_buffer, 0x001F);  // Azul para acc_z
         }
-        mtimer_delay_ms(100);
+        mtimer_delay_ms(20);
     }
 }
